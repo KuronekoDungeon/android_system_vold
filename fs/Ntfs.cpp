@@ -16,6 +16,7 @@
 
 #include "Ntfs.h"
 #include "Utils.h"
+#include "fsexist.h"
 
 #include <base/logging.h>
 #include <base/stringprintf.h>
@@ -34,19 +35,13 @@ namespace ntfs {
 #ifdef MINIVOLD
 static const char* kMkfsPath = "/sbin/mkfs.ntfs";
 static const char* kFsckPath = "/sbin/fsck.ntfs";
-#ifdef CONFIG_KERNEL_HAVE_NTFS
 static const char* kMountPath = "/sbin/mount";
-#else
-static const char* kMountPath = "/sbin/mount.ntfs";
-#endif
+static const char* kMountPathFuse = "/sbin/mount.ntfs";
 #else
 static const char* kMkfsPath = "/system/bin/mkfs.ntfs";
 static const char* kFsckPath = "/system/bin/fsck.ntfs";
-#ifdef CONFIG_KERNEL_HAVE_NTFS
 static const char* kMountPath = "/system/bin/mount";
-#else
-static const char* kMountPath = "/system/bin/mount.ntfs";
-#endif
+static const char* kMountPathFuse = "/system/bin/mount.ntfs";
 #endif
 
 bool IsSupported() {
@@ -73,29 +68,35 @@ status_t Mount(const std::string& source, const std::string& target, bool ro,
 
     const char* c_source = source.c_str();
     const char* c_target = target.c_str();
-
+    std::vector<std::string> cmd;
+    
+    if ( has_filesystem("ufsd") ) {
+    sprintf(mountData, "nls=utf8,force,uid=%d,gid=%d,fmask=%o,dmask=%o",
+            ownerUid, ownerGid, permMask, permMask);
+    cmd.push_back(kMountPath);
+    cmd.push_back("-t");
+    cmd.push_back("ufsd");
+    } else if ( has_filesystem("ntfs") ) {
+    sprintf(mountData, "utf8,uid=%d,gid=%d,fmask=%o,dmask=%o,nodev,nosuid",
+            ownerUid, ownerGid, permMask, permMask);
+    cmd.push_back(kMountPath);
+    cmd.push_back("-t");
+    cmd.push_back("ntfs");
+    } else {
     sprintf(mountData,
-#ifdef CONFIG_KERNEL_HAVE_NTFS
-            "utf8,uid=%d,gid=%d,fmask=%o,dmask=%o,nodev,nosuid",
-#else
             "utf8,uid=%d,gid=%d,fmask=%o,dmask=%o,"
             "shortname=mixed,nodev,nosuid,dirsync",
-#endif
             ownerUid, ownerGid, permMask, permMask);
-
+    cmd.push_back(kMountPathFuse);
+    }
+    
     if (!executable)
         strcat(mountData, ",noexec");
     if (ro)
         strcat(mountData, ",ro");
     if (remount)
         strcat(mountData, ",remount");
-
-    std::vector<std::string> cmd;
-    cmd.push_back(kMountPath);
-#ifdef CONFIG_KERNEL_HAVE_NTFS
-    cmd.push_back("-t");
-    cmd.push_back("ntfs");
-#endif
+    
     cmd.push_back("-o");
     cmd.push_back(mountData);
     cmd.push_back(c_source);

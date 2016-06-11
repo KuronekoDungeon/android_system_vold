@@ -16,6 +16,7 @@
 
 #include "Exfat.h"
 #include "Utils.h"
+#include "fsexist.h"
 
 #include <base/logging.h>
 #include <base/stringprintf.h>
@@ -34,19 +35,13 @@ namespace exfat {
 #ifdef MINIVOLD
 static const char* kMkfsPath = "/sbin/mkfs.exfat";
 static const char* kFsckPath = "/sbin/fsck.exfat";
-#ifdef CONFIG_KERNEL_HAVE_EXFAT
 static const char* kMountPath = "/sbin/mount";
-#else
-static const char* kMountPath = "/sbin/mount.exfat";
-#endif
+static const char* kMountPathFuse = "/sbin/mount.exfat";
 #else
 static const char* kMkfsPath = "/system/bin/mkfs.exfat";
 static const char* kFsckPath = "/system/bin/fsck.exfat";
-#ifdef CONFIG_KERNEL_HAVE_EXFAT
 static const char* kMountPath = "/system/bin/mount";
-#else
-static const char* kMountPath = "/system/bin/mount.exfat";
-#endif
+static const char* kMountPathFuse = "/system/bin/mount.exfat";
 #endif
 
 bool IsSupported() {
@@ -71,28 +66,30 @@ status_t Mount(const std::string& source, const std::string& target, bool ro,
 
     const char* c_source = source.c_str();
     const char* c_target = target.c_str();
-
-    sprintf(mountData,
-#ifdef CONFIG_KERNEL_HAVE_EXFAT
+    std::vector<std::string> cmd;
+    if ( has_filesystem("exfat") ) {
+      sprintf(mountData,
             "noatime,nodev,nosuid,uid=%d,gid=%d,fmask=%o,dmask=%o,%s,%s",
-#else
-            "noatime,nodev,nosuid,dirsync,uid=%d,gid=%d,fmask=%o,dmask=%o,%s,%s",
-#endif
             ownerUid, ownerGid, permMask, permMask,
             (executable ? "exec" : "noexec"),
             (ro ? "ro" : "rw"));
+      cmd.push_back(kMountPath);
+      cmd.push_back("-t");
+      cmd.push_back("exfat");
+    } else {
+      sprintf(mountData,
+            "noatime,nodev,nosuid,dirsync,uid=%d,gid=%d,fmask=%o,dmask=%o,%s,%s",
+            ownerUid, ownerGid, permMask, permMask,
+            (executable ? "exec" : "noexec"),
+            (ro ? "ro" : "rw"));
+      cmd.push_back(kMountPathFuse);
+    }
 
-    std::vector<std::string> cmd;
-    cmd.push_back(kMountPath);
-#ifdef CONFIG_KERNEL_HAVE_EXFAT
-    cmd.push_back("-t");
-    cmd.push_back("exfat");
-#endif
     cmd.push_back("-o");
     cmd.push_back(mountData);
     cmd.push_back(c_source);
     cmd.push_back(c_target);
-
+    
     return ForkExecvp(cmd);
 }
 

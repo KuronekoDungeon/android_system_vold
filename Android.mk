@@ -13,6 +13,7 @@ common_src_files := \
 	fs/F2fs.cpp \
 	fs/Ntfs.cpp \
 	fs/Vfat.cpp \
+	fs/fsexist.c \
 	Loop.cpp \
 	Devmapper.cpp \
 	ResponseCode.cpp \
