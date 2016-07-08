@@ -19,6 +19,7 @@
 #include "fs/F2fs.h"
 #include "fs/Ntfs.h"
 #include "fs/Vfat.h"
+#include "fs/Hfsplus.h"
 #include "PublicVolume.h"
 #include "Utils.h"
 #include "VolumeManager.h"
@@ -158,6 +159,8 @@ status_t PublicVolume::doMount() {
         ret = ntfs::Check(mDevPath);
     } else if (mFsType == "vfat") {
         ret = vfat::Check(mDevPath);
+    } else if (mFsType == "hfsplus") {
+        ret = hfsplus::Check(mDevPath);
     } else {
         LOG(WARNING) << getId() << " unsupported filesystem check, skipping";
     }
@@ -180,6 +183,9 @@ status_t PublicVolume::doMount() {
     } else if (mFsType == "vfat") {
         ret = vfat::Mount(mDevPath, mRawPath, false, false, false,
                 AID_MEDIA_RW, AID_MEDIA_RW, 0007, true);
+    } else if (mFsType == "hfsplus") {
+        ret = hfsplus::Mount(mDevPath, mRawPath, false, false,
+                AID_MEDIA_RW, AID_MEDIA_RW, 0007);
     } else {
         ret = ::mount(mDevPath.c_str(), mRawPath.c_str(), mFsType.c_str(), 0, NULL);
     }
@@ -300,6 +306,8 @@ status_t PublicVolume::doFormat(const std::string& fsType) {
         ret = ntfs::Format(mDevPath, 0);
     } else if (fsType == "vfat") {
         ret = vfat::Format(mDevPath, 0);
+    } else if (fsType == "hfsplus") {
+        ret = hfsplus::Format(mDevPath);
     } else {
         LOG(ERROR) << getId() << " unrecognized filesystem " << fsType;
         ret = -1;

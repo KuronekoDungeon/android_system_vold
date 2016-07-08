@@ -17,9 +17,11 @@
 #include "sehandle.h"
 #include "Utils.h"
 #include "Process.h"
+#include "fsexist.h"
 
 #include "fs/Exfat.h"
 #include "fs/Ntfs.h"
+#include "fs/Hfsplus.h"
 
 #include <base/file.h>
 #include <base/logging.h>
@@ -541,6 +543,11 @@ bool IsFilesystemSupported(const std::string& fsType) {
     /* fuse filesystems */
     supported.append("fuse\tntfs\n"
                      "fuse\texfat\n");
+    
+    if ( has_filesystem("ufsd") ) {
+        supported.append("ufsd\thfsplus\n");
+    }
+        
 
     return supported.find(fsType + "\n") != std::string::npos;
 }

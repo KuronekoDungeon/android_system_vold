@@ -64,7 +64,9 @@ extern "C" int vold_main(int argc, char** argv) {
             << (android::vold::IsFilesystemSupported("ext4") ? " ext4" : "")
             << (android::vold::IsFilesystemSupported("f2fs") ? " f2fs" : "")
             << (android::vold::IsFilesystemSupported("ntfs") ? " ntfs" : "")
-            << (android::vold::IsFilesystemSupported("vfat") ? " vfat" : "");
+            << (android::vold::IsFilesystemSupported("vfat") ? " vfat" : "")
+            << (android::vold::IsFilesystemSupported("hfsplus") ? " hfsplus" : "")
+            << (android::vold::IsFilesystemSupported("ufsd") ? " ufsd" : "");
 
     VolumeManager *vm;
     CommandListener *cl;
